@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Presensi & Kinerja Guru</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* ==========================================
+           1. DESIGN SYSTEM & CSS VARIABLES
+           ========================================== */
+        :root {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --secondary: #2c3e50;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --bg-light: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 2px 5px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            padding-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        /* ==========================================
+           2. LOADING OVERLAY & POPUP NOTIFIKASI
+           ========================================== */
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            width: 45px;
+            height: 45px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9990;
+        }
+
+        .popup-box {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: var(--radius-md);
+            max-width: 380px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ==========================================
+           3. HEADER & PROFIL CARD
+           ========================================== */
+        .app-header {
+            background: var(--card-bg);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+        }
+
+        .profile-card {
+            background: var(--card-bg);
+            margin: 20px auto;
+            max-width: 800px;
+            width: 92%;
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .profile-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+        }
+
+        /* ==========================================
+           4. MENU GRID SYSTEM
+           ========================================== */
+        .menu-container {
+            max-width: 800px;
+            width: 92%;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+
+        .menu-card {
+            background: var(--card-bg);
+            padding: 18px 12px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ==========================================
+           5. MODAL SYSTEM (GENERAL)
+           ========================================== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9000;
+            overflow-y: auto;
+            padding: 20px 10px;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            margin: 30px auto;
+            max-width: 600px;
+            width: 100%;
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-md);
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p style="margin-top: 12px; font-weight: 600; color: var(--text-main);">Memuat Data...</p>
+    </div>
+
+    <!-- POPUP NOTIFIKASI UMUM -->
+    <div id="infoPopup" class="popup-overlay">
+        <div class="popup-box">
+            <div id="popup-icon" style="font-size: 2.5em; margin-bottom: 8px;">ℹ️</div>
+            <h3 id="popup-title" style="margin-bottom: 6px;">Informasi</h3>
+            <p id="popup-message" style="color: var(--text-muted); font-size: 0.95em;"></p>
+            <button onclick="closeInfoPopup()" style="margin-top: 16px; padding: 8px 20px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-sm); cursor: pointer;">Tutup</button>
+        </div>
+    </div>
+
+    <!-- HEADER / BAR ATAS -->
+    <header class="app-header">
+        <div style="font-weight: bold; font-size: 1.1em; color: var(--primary-dark);">
+            <i class="fas fa-school"></i> SMP Portal
+        </div>
+        <div style="font-size: 0.85em; color: var(--text-muted);" id="display-tanggal">-</div>
+    </header>
+
+    <!-- PROFIL RINGKAS GURU -->
+    <div class="profile-card">
+        <img id="dash-foto" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Foto Profil" class="profile-img">
+        <div>
+            <h2 id="nama-guru" style="font-size: 1.25em; margin-bottom: 4px;">-</h2>
+            <p id="dash-jabatan" style="font-size: 0.9em; color: var(--primary); font-weight: 600;">-</p>
+            <p id="dash-nip" style="font-size: 0.8em; color: var(--text-muted);">-</p>
+        </div>
+    </div>
+
+    <!-- NAVIGASI / MENU UTAMA -->
+    <main class="menu-container">
+        <div class="menu-card" onclick="bukaLaporan()">
+            <i class="fas fa-chart-line fa-2x" style="color: var(--primary);"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Laporan Kinerja</span>
+        </div>
+        <div class="menu-card" onclick="bukaJadwalMengajar()">
+            <i class="fas fa-calendar-alt fa-2x" style="color: #9b59b6;"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Jadwal Mengajar</span>
+        </div>
+        <div class="menu-card" onclick="bukaBiodata()">
+            <i class="fas fa-id-card fa-2x" style="color: #e67e22;"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Biodata Saya</span>
+        </div>
+        
+        <!-- MENU DENGAN FILTER OTOMATIS (Akan disembunyikan/ditampilkan oleh JS) -->
+        <div id="menu-absensi-siswa" class="menu-card" onclick="cekAksesAbsensi()" style="display: none;">
+            <i class="fas fa-user-check fa-2x" style="color: var(--success);"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Absensi Siswa</span>
+        </div>
+        <div id="menu-t2q" class="menu-card" onclick="bukaProgresT2Q(event)" style="display: none;">
+            <i class="fas fa-quran fa-2x" style="color: #1abc9c;"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Progres T2Q</span>
+        </div>
+        <div id="menu-bpi" class="menu-card" style="display: none;">
+            <i class="fas fa-hands-helping fa-2x" style="color: #d35400;"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Jurnal BPI</span>
+        </div>
+        <div id="menu-ekstra-kurikuler" class="menu-card" style="display: none;">
+            <i class="fas fa-running fa-2x" style="color: #27ae60;"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Jurnal Ekstra</span>
+        </div>
+        <div id="menu-absensi-karyawan" class="menu-card" style="display: none;">
+            <i class="fas fa-users-cog fa-2x" style="color: #34495e;"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Absen Karyawan</span>
+        </div>
+        <div id="menu-notulen-rapat" class="menu-card" style="display: none;">
+            <i class="fas fa-file-signature fa-2x" style="color: #8e44ad;"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Notulen Rapat</span>
+        </div>
+        <div id="menu-input-piket" class="menu-card" style="display: none;">
+            <i class="fas fa-clipboard-list fa-2x" style="color: #c0392b;"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Input Piket</span>
+        </div>
+        <div id="menu-laporan-piket" class="menu-card" style="display: none;">
+            <i class="fas fa-folder-open fa-2x" style="color: #f39c12;"></i>
+            <span style="font-size: 0.85em; font-weight: 600;">Laporan Piket</span>
+        </div>
+    </main>
+
+</body>
+</html>
